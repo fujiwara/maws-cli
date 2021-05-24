@@ -1,6 +1,7 @@
 package maws
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"log"
@@ -20,11 +21,11 @@ import (
 type Option struct {
 	Config       string
 	MaxParallels int64
+	BufferStdout bool
 	Commands     []string
 }
 
 func Run(ctx context.Context, opt Option) (int64, error) {
-
 	awsCfg, err := awsconfig.LoadDefaultConfig(ctx)
 	if err != nil {
 		return 0, err
@@ -41,6 +42,7 @@ func Run(ctx context.Context, opt Option) (int64, error) {
 	var wg sync.WaitGroup
 	var errCount int64
 	sem := semaphore.NewWeighted(opt.MaxParallels)
+	stdouts := make(chan []byte, len(cfg.Roles))
 	for _, role := range cfg.Roles {
 		wg.Add(1)
 		sem.Acquire(ctx, 1)
@@ -53,18 +55,28 @@ func Run(ctx context.Context, opt Option) (int64, error) {
 				atomic.AddInt64(&errCount, 1)
 				return
 			}
-			if err := runFor(ctx, awsCfg.Region, creds, opt.Commands); err != nil {
+			b, err := runFor(ctx, awsCfg.Region, creds, opt)
+			if err != nil {
 				log.Printf("[warn] failed to run for role %s %s", role, err)
 				atomic.AddInt64(&errCount, 1)
 				return
 			}
+			stdouts <- b
 		}(role)
 	}
-	wg.Wait()
+	go func() {
+		wg.Wait()
+		close(stdouts)
+	}()
+	for b := range stdouts {
+		os.Stdout.Write(b)
+	}
+
 	return errCount, nil
 }
 
-func runFor(ctx context.Context, region string, creds *types.Credentials, commands []string) error {
+func runFor(ctx context.Context, region string, creds *types.Credentials, opt Option) ([]byte, error) {
+	commands := opt.Commands
 	log.Printf("[debug] %s %s", *creds.AccessKeyId, commands)
 
 	cmd := exec.CommandContext(ctx, "aws", commands...)
@@ -84,12 +96,19 @@ func runFor(ctx context.Context, region string, creds *types.Credentials, comman
 		"AWS_PAGER=",
 	)
 	cmd.Env = envs
-	cmd.Stdout = os.Stdout
+	var buf bytes.Buffer
+	if opt.BufferStdout {
+		cmd.Stdout = &buf
+	} else {
+		cmd.Stdout = os.Stdout
+	}
 	cmd.Stderr = os.Stderr
 	if err := cmd.Start(); err != nil {
-		return err
+		return nil, err
 	}
-	return cmd.Wait()
+
+	err := cmd.Wait()
+	return buf.Bytes(), err
 }
 
 func assumeRole(ctx context.Context, awsCfg aws.Config, role string) (*types.Credentials, error) {

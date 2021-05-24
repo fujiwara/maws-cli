@@ -13,6 +13,8 @@ maws works as below.
 ```console
 $ maws -h
 Usage of maws:
+  -buffering
+        buffering stdout of aws cli (default true)
   -config string
         path of a config file (default "maws.yaml")
   -max-parallels int
