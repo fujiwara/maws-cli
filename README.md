@@ -1,6 +1,6 @@
 # maws-cli
 
-maws is a multipex wrapper for aws cli.
+maws is a multiplexing wrapper for aws cli.
 
 maws works as below.
 
