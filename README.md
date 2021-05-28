@@ -8,6 +8,18 @@ maws works as below.
 1. Assume role to roles in the config.
 1. Run `aws` command with these assumed roles.
 
+## Install
+
+### Homebrew (macOS and Linux)
+
+```console
+$ brew install fujiwara/tap/maws-cli
+```
+
+### Binary packages
+
+[Releases](https://github.com/fujiwara/maws-cli/releases/)
+
 ## Usage
 
 ```console
