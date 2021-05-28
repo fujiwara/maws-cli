@@ -29,8 +29,12 @@ Usage of maws:
         buffering stdout of aws cli (default true)
   -config string
         path of a config file (default "maws.yaml")
+  -debug
+        enable debug log
   -max-parallels int
         max parallels (default 10)
+  -version
+        show version
 ```
 
 maws.yaml
