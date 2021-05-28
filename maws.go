@@ -39,15 +39,24 @@ func Run(ctx context.Context, opt Option) (int64, error) {
 		return 0, err
 	}
 
-	var wg sync.WaitGroup
+	var wgRoles, wgStdout sync.WaitGroup
 	var errCount int64
 	sem := semaphore.NewWeighted(opt.MaxParallels)
 	stdouts := make(chan []byte, len(cfg.Roles))
+
+	wgStdout.Add(1)
+	go func() {
+		defer wgStdout.Done()
+		for b := range stdouts {
+			os.Stdout.Write(b)
+		}
+	}()
+
 	for _, role := range cfg.Roles {
-		wg.Add(1)
+		wgRoles.Add(1)
 		sem.Acquire(ctx, 1)
 		go func(role string) {
-			defer wg.Done()
+			defer wgRoles.Done()
 			defer sem.Release(1)
 			creds, err := assumeRole(ctx, awsCfg, role)
 			if err != nil {
@@ -64,13 +73,9 @@ func Run(ctx context.Context, opt Option) (int64, error) {
 			stdouts <- b
 		}(role)
 	}
-	go func() {
-		wg.Wait()
-		close(stdouts)
-	}()
-	for b := range stdouts {
-		os.Stdout.Write(b)
-	}
+	wgRoles.Wait()
+	close(stdouts)
+	wgStdout.Wait()
 
 	return errCount, nil
 }
