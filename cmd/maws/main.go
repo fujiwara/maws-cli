@@ -23,6 +23,7 @@ func main() {
 	var showVersion, debug bool
 	opt := maws.Option{}
 	flag.StringVar(&opt.Config, "config", "maws.yaml", "path of a config file")
+	flag.StringVar(&opt.CLI, "cli", "aws", "path of aws cli")
 	flag.BoolVar(&debug, "debug", false, "enable debug log")
 	flag.BoolVar(&opt.BufferStdout, "buffering", true, "buffering stdout of aws cli")
 	flag.Int64Var(&opt.MaxParallels, "max-parallels", 10, "max parallels")

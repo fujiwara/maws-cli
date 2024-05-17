@@ -22,6 +22,7 @@ type Option struct {
 	Config       string
 	MaxParallels int64
 	BufferStdout bool
+	CLI          string
 	Commands     []string
 }
 
@@ -84,7 +85,7 @@ func runFor(ctx context.Context, region string, creds *types.Credentials, opt Op
 	commands := opt.Commands
 	log.Printf("[debug] %s %s", *creds.AccessKeyId, commands)
 
-	cmd := exec.CommandContext(ctx, "aws", commands...)
+	cmd := exec.CommandContext(ctx, opt.CLI, commands...)
 	envs := make([]string, 0)
 	for _, env := range os.Environ() {
 		switch env {
