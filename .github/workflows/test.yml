@@ -1,12 +1,12 @@
-name: Go
+name: test
 on: [push, pull_request]
 jobs:
   test:
     strategy:
       matrix:
         go:
-          - 1.15
-          - 1.16
+          - "1.21"
+          - "1.22"
     name: Build
     runs-on: ubuntu-latest
     steps:
